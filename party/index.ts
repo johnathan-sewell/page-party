@@ -52,7 +52,7 @@ export default class Server implements Party.Server {
 
       this.questions.push({
         playerId,
-        text: `Question ${i + 1}: Who is this?`,
+        text: `Question ${i + 1} of ${QUIZ_LENGTH}: Who is this?`,
         nicknames: options,
       });
       this.correctAnswers.push({
