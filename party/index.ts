@@ -1,31 +1,69 @@
 import type * as Party from "partykit/server";
+import {
+  AnswerEvent,
+  CorrectAnswer,
+  MouseMoveEvent,
+  Participant,
+  ParticipantReadyEvent,
+  Question,
+  QuestionEvent,
+} from "./types";
+import { players } from "./players";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
-interface Quiz {
-  questions: {
-    question: string;
 
-    options: {
-      id: string;
-      nickname: string;
-    }[];
-
-    correctAnswer: {
-      id: string;
-      nickname: string;
-    };
-  }[];
-}
-
+const QUIZ_LENGTH = 5;
 export default class Server implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
-  quiz: Quiz | undefined;
+  questions: Question[];
+  correctAnswers: CorrectAnswer[];
+  currentQuestion: Question | undefined;
+
   roomName: string | undefined;
+  participants: Participant[] = [];
+
+  async createRoom(name: string) {
+    this.questions = [];
+    this.correctAnswers = [];
+
+    // create questions
+    for (let i = 0; i < QUIZ_LENGTH; i++) {
+      const { id: playerId, nickname: nickname } =
+        players[Math.floor(Math.random() * players.length)];
+
+      // create 4 player options
+      const options: string[] = [];
+
+      // TODO shuffle the options so the first one isn't always the correct answer
+      options.push(nickname);
+
+      while (options.length <= 3) {
+        const randomPlayer =
+          players[Math.floor(Math.random() * players.length)];
+        if (!options.includes(randomPlayer.nickname)) {
+          options.push(randomPlayer.nickname);
+        }
+      }
+
+      this.questions.push({
+        playerId,
+        text: `Question ${i + 1}: Who is this?`,
+        nicknames: options,
+      });
+      this.correctAnswers.push({
+        playerId,
+        nickname,
+      });
+    }
+
+    this.currentQuestion = this.questions[0];
+    this.roomName = name;
+  }
 
   async onRequest(req: Party.Request) {
     if (req.method === "OPTIONS") {
@@ -35,64 +73,19 @@ export default class Server implements Party.Server {
       });
     }
 
-    // start a new quiz room
+    // POST starts a new quiz room
     if (req.method === "POST") {
-      const teamsJson = await fetch(
-        "https://api.blast.tv/v2/tournaments/spring-showdown-2024/teams"
-      ).then((res) => res.json());
-
-      const teamIds = teamsJson.teams.map((team: { id: string }) => team.id);
-
-      const playersInAllTeamsJson = await Promise.all(
-        teamIds.map((teamId) =>
-          fetch(`https://api.blast.tv/v2/teams/${teamId}/players`).then((res) =>
-            res.json()
-          )
-        )
-      );
-
-      const allPlayers = playersInAllTeamsJson
-        .flat()
-        .map((player) => ({ id: player.id, nickname: player.nickname }));
-
-      console.log("fetched players in all teams", allPlayers);
-
-      this.quiz = {
-        questions: [],
-      };
-
-      for (let i = 0; i < 10; i++) {
-        const correctAnswer =
-          allPlayers[Math.floor(Math.random() * allPlayers.length)];
-
-        // create 4 player options
-        const options: {
-          id: string;
-          nickname: string;
-        }[] = [];
-        options.push(correctAnswer);
-        while (options.length <= 4) {
-          const randomPlayer =
-            allPlayers[Math.floor(Math.random() * allPlayers.length)];
-          if (!options.includes(randomPlayer)) {
-            options.push(randomPlayer);
-          }
-        }
-
-        this.quiz.questions.push({
-          question: "Who is this player?",
-          options,
-          correctAnswer,
-        });
-      }
-
       const payload = await req.json<{ name: string }>();
-      this.roomName = payload.name;
+      await this.createRoom(payload.name);
     }
 
-    if (this.roomName) {
+    // else GET returns the current question
+    if (this.roomName && this.questions) {
       return new Response(
-        JSON.stringify({ roomName: this.roomName, quiz: this.quiz }),
+        JSON.stringify({
+          roomName: this.roomName,
+          question: this.questions[0],
+        }),
         {
           status: 200,
           headers: {
@@ -103,17 +96,128 @@ export default class Server implements Party.Server {
       );
     }
 
-    return new Response("Not found", { status: 404 });
+    return new Response("Not found", { status: 404, headers: corsHeaders });
   }
 
-  async onMessage(message: string, sender: Party.Connection) {
-    // if (!this.poll) return;
-    // const event = JSON.parse(message);
-    // if (event.type === "vote") {
-    //   this.poll.votes![event.option] += 1;
-    //   this.room.broadcast(JSON.stringify(this.poll));
-    // }
-    this.room.broadcast(message, [sender.id]);
+  async onMessage(messageString: string, sender: Party.Connection) {
+    const event = JSON.parse(messageString) as
+      | AnswerEvent
+      | MouseMoveEvent
+      | ParticipantReadyEvent;
+
+    if (event.type === "mouse") {
+      this.room.broadcast(
+        JSON.stringify({
+          type: "mouse",
+          payload: event.payload,
+        }),
+        [sender.id]
+      );
+    }
+
+    if (event.type === "participant:ready") {
+      this.participants.push({
+        id: sender.id,
+        name: sender.id,
+        answers: [],
+      });
+
+      for (const everyone of this.room.getConnections()) {
+        everyone.send(
+          JSON.stringify({
+            type: "participants",
+            payload: this.participants,
+          })
+        );
+      }
+    }
+
+    if (event.type === "answer") {
+      const { nickname, playerId } = event.payload;
+
+      const participant = this.participants.find(
+        (participant) => participant.id === sender.id
+      );
+
+      if (!participant) return;
+      if (!this.currentQuestion) return;
+      // already answered this question
+      if (participant.answers.find((answer) => answer.playerId === playerId))
+        return;
+
+      // update answers
+      participant.answers.push({
+        playerId,
+        nickname,
+        correct:
+          nickname ===
+          this.correctAnswers.find((a) => a.playerId === playerId)?.nickname,
+      });
+
+      // if all participants have answered this question
+      if (
+        this.participants.every((participant) =>
+          participant.answers.find(
+            (answer) => answer.playerId === this.currentQuestion!.playerId
+          )
+        )
+      ) {
+        // if this is the last question
+        const indexOfCurrentQuestion = this.questions!.findIndex(
+          (question) => question === this.currentQuestion
+        );
+        if (indexOfCurrentQuestion === this.questions!.length - 1) {
+          // end the game
+          for (const everyone of this.room.getConnections()) {
+            everyone.send(
+              JSON.stringify({
+                type: "gameover",
+                payload: this.participants,
+              })
+            );
+          }
+          return;
+        } else {
+          // send new answer states to everyone
+          for (const everyone of this.room.getConnections()) {
+            everyone.send(
+              JSON.stringify({
+                type: "participants",
+                payload: this.participants,
+              })
+            );
+          }
+        }
+
+        // move to the next question
+        this.currentQuestion = this.questions![indexOfCurrentQuestion + 1];
+
+        // send everyone the new question after 5 seconds
+        setTimeout(() => {
+          if (!this.currentQuestion) return; // this should never happen?
+          for (const everyone of this.room.getConnections()) {
+            const questionEvent: QuestionEvent = {
+              type: "question",
+              payload: this.currentQuestion,
+            };
+            everyone.send(JSON.stringify(questionEvent));
+          }
+        }, 5000);
+      }
+    }
+  }
+
+  async onClose(sender: Party.Connection) {
+    // remove the sender from the participants list
+    this.participants = this.participants.filter(({ id }) => id !== sender.id);
+    for (const everyone of this.room.getConnections()) {
+      everyone.send(
+        JSON.stringify({
+          type: "participants",
+          payload: this.participants,
+        })
+      );
+    }
   }
 }
 

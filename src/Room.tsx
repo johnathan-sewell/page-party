@@ -1,47 +1,83 @@
 // import { useState } from "react";
 import usePartySocket from "partysocket/react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { config } from "./config";
 import { useEffect, useState } from "react";
+import {
+  AnswerEvent,
+  Cursors,
+  GameOverEvent,
+  MouseMoveEvent,
+  Participant,
+  ParticipantsEvent,
+  Question,
+  QuestionEvent,
+} from "../party/types";
 import { Cursor } from "./Cursor";
-
-type MouseData = {
-  [key: string]: { x: number; y: number };
-};
 
 const myId = Math.random().toString(36).substring(2, 10);
 
 export function Room() {
   const { roomId } = useParams();
-  const [roomName, setRoomName] = useState<string | undefined>(undefined);
-  const [roomColor, setRoomColor] = useState<string | undefined>(undefined);
+  const navigate = useNavigate();
+  const [roomName, setRoomName] = useState<string>();
+  const [question, setQuestion] = useState<Question>();
+  const [gameState, setGameState] = useState<"playing" | "gameover">("playing");
+
+  const [quizParticipants, setQuizParticipants] = useState<Participant[]>([]);
 
   const [dimensions, setDimensions] = useState<{
     width: number;
     height: number;
   }>({ width: 0, height: 0 });
 
-  const [mouseData, setMouseData] = useState<MouseData>();
+  const [mouseData, setMouseData] = useState<Cursors>();
 
   const socket = usePartySocket({
     host: config.PARTYKIT_URL,
     room: roomId,
-    onMessage(event) {
-      setMouseData(JSON.parse(event.data));
+    onMessage({ data }) {
+      const event = JSON.parse(data) as
+        | QuestionEvent
+        | MouseMoveEvent
+        | ParticipantsEvent
+        | GameOverEvent;
+
+      if (event.type === "mouse") {
+        setMouseData(event.payload);
+      }
+      if (event.type === "participants") {
+        setQuizParticipants(event.payload);
+      }
+      if (event.type === "question") {
+        setQuestion(event.payload);
+      }
+      if (event.type === "gameover") {
+        setGameState("gameover");
+        setQuizParticipants(event.payload);
+      }
     },
   });
 
   // fetch room data
   useEffect(() => {
     const fetchRoom = async () => {
-      const response = await fetch(`${config.PARTYKIT_URL}/party/${roomId}`);
-      const data = await response.json();
-      setRoomName(data.roomName);
-      setRoomColor(data.roomColor);
+      await fetch(`${config.PARTYKIT_URL}/party/${roomId}`)
+        .then((response) => {
+          if (!response.ok && response.status === 404) {
+            navigate("/");
+          } else {
+            return response.json();
+          }
+        })
+        .then((data) => {
+          setRoomName(data.roomName);
+          setQuestion(data.question);
+        });
     };
 
     fetchRoom();
-  }, [roomId]);
+  }, [roomId, navigate]);
 
   // track window dimensions
   useEffect(() => {
@@ -60,13 +96,16 @@ export function Room() {
     const onMouseMove = (e: MouseEvent) => {
       if (!socket) return;
       if (!dimensions.width || !dimensions.height) return;
-      const mouseData: MouseData = {
-        [myId]: {
-          x: e.clientX / dimensions.width,
-          y: e.clientY / dimensions.height,
+      const data: MouseMoveEvent = {
+        type: "mouse",
+        payload: {
+          [myId]: {
+            x: e.clientX / dimensions.width,
+            y: e.clientY / dimensions.height,
+          },
         },
       };
-      socket.send(JSON.stringify(mouseData));
+      socket.send(JSON.stringify(data));
     };
     window.addEventListener("mousemove", onMouseMove);
 
@@ -75,18 +114,89 @@ export function Room() {
     };
   }, [socket, dimensions]);
 
+  // register user
+  useEffect(() => {
+    socket.send(
+      JSON.stringify({
+        type: "participant:ready",
+      })
+    );
+  }, [socket]);
+
   return (
     <div
       style={{
         width: "100vw",
         height: "100vh",
-        backgroundColor: roomColor,
         margin: 0,
         padding: 0,
       }}
     >
       <div>
         {roomName} ({roomId})
+      </div>
+
+      {gameState === "playing" && question && (
+        <div>
+          <div>{question.text}</div>
+          <img
+            src={`https://assets.blast.tv/images/players/${question.playerId}?height=300&width=auto&format=auto`}
+            alt={question.playerId}
+          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            {question.nicknames.map((nickname) => (
+              <button
+                key={nickname}
+                onClick={() => {
+                  const answer: AnswerEvent = {
+                    type: "answer",
+                    payload: {
+                      nickname,
+                      playerId: question.playerId,
+                    },
+                  };
+                  socket.send(JSON.stringify(answer));
+                }}
+              >
+                {nickname}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gameState === "gameover" && (
+        <div>
+          <h1>Game Over</h1>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        Quiz Participants:
+        {quizParticipants.map((participant) => (
+          <div key={participant.id}>
+            {participant.name}
+            <ul>
+              {participant.answers.map((answer) => (
+                <li key={answer.playerId}>
+                  {answer.nickname} {answer.correct ? "✅" : "❌"}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
       {mouseData &&
