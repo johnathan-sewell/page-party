@@ -31,4 +31,11 @@ export class ChatHandler implements Handler {
     });
     this.broadcastMessages();
   }
+  onClose(sender: Party.Connection) {
+    this.#messages.push({
+      name: "PARTYBOT",
+      text: `${sender.id} had somewhere else to be. 😢`,
+    });
+    this.broadcastMessages();
+  }
 }

@@ -19,6 +19,10 @@ export default class Server implements Party.Server {
   async onConnect(sender: Party.Connection) {
     this.#chatHandler.onConnect(sender);
   }
+
+  async onClose(sender: Party.Connection) {
+    this.#chatHandler.onClose(sender);
+  }
 }
 
 Server satisfies Party.Worker;
