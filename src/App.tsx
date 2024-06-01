@@ -1,14 +1,18 @@
 import "./App.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Lobby } from "./Room";
+import { Lobby } from "./Lobby";
+import { Nav } from "./Nav";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Lobby />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <Nav />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Lobby />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

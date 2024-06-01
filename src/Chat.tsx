@@ -38,7 +38,7 @@ export const Chat = ({
       <div className="grow overflow-auto" id="messages">
         {messages.map((message, i) => (
           <div className="" key={i}>
-            {message.name}: {message.text}
+            [{message.name}] {message.text}
           </div>
         ))}
       </div>

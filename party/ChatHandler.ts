@@ -25,6 +25,10 @@ export class ChatHandler implements Handler {
     }
   }
   onConnect(sender: Party.Connection) {
-    sender.send(JSON.stringify({ type: "messages", payload: this.#messages }));
+    this.#messages.push({
+      name: "PARTYBOT",
+      text: `🎉 ${sender.id} has joined the party! 🎉`,
+    });
+    this.broadcastMessages();
   }
 }
