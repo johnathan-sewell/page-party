@@ -1,13 +1,12 @@
 export function Cursor({
-  id,
   cursor,
   windowDimensions,
 }: {
   cursor: {
+    name: string;
     x: number;
     y: number;
   };
-  id: string;
   windowDimensions: { width: number; height: number };
 }) {
   console.log("rendering cursor", cursor, windowDimensions);
@@ -38,7 +37,7 @@ export function Cursor({
           />
         </g>
       </svg>
-      <span>{id} </span>
+      <span>{cursor.name} </span>
     </div>
   );
 }
