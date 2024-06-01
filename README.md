@@ -1,4 +1,4 @@
-# Party Quiz
+# Page party
 
 ## Development
 
