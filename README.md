@@ -7,4 +7,6 @@
 
 ## Deploy to Production
 
-`pnpm exec partykit deploy` Deploy Partykit to Partykit servers (Cloudflare).
+Vite Frontend is deployed automatically to https://pageparty.netlify.app/ from Github.
+
+`pnpm exec partykit deploy` Deploy Partykit server to Partykit infrastructure (Cloudflare).

@@ -21,6 +21,11 @@ export interface Answer {
   nickname: string;
 }
 
+export interface ChatMessage {
+  name: string;
+  text: string;
+}
+
 // Events
 export type StartEvent = {
   type: "start";
@@ -36,6 +41,14 @@ export type CountdownEvent = {
 export type MouseMoveEvent = {
   type: "mouse";
   payload: Cursors;
+};
+export type SendMessageEvent = {
+  type: "sendMessage";
+  payload: ChatMessage;
+};
+export type MessagesEvent = {
+  type: "messages";
+  payload: ChatMessage[];
 };
 export type AnswerEvent = {
   type: "answer";
@@ -54,6 +67,8 @@ export type GameOverEvent = {
   payload: Participant[];
 };
 export type EventType =
+  | SendMessageEvent
+  | MessagesEvent
   | QuestionEvent
   | MouseMoveEvent
   | ParticipantsEvent

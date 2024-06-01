@@ -2,6 +2,7 @@ import usePartySocket from "partysocket/react";
 import { config } from "./config";
 import { CursorTracking } from "./CursorTracking/CursorTracking";
 import { useState } from "react";
+import { Chat } from "./Chat";
 
 const ROOM_ID = "floof-party";
 
@@ -36,9 +37,29 @@ const useNameForm = () => {
   };
 };
 
-export function Room() {
+const Nav = () => (
+  <nav className="bg-black w-full flex justify-center h-10 mb-1">
+    <div className="prose">
+      <h1 className="text-center uppercase text-white">
+        Page <em className="text-pink-500">Party</em>
+      </h1>
+    </div>
+  </nav>
+);
+
+export function Lobby() {
   const { name, nameForm } = useNameForm();
 
+  return (
+    <>
+      <Nav />
+      {!name && nameForm}
+      {name && <Room name={name} />}
+    </>
+  );
+}
+
+export function Room({ name }: { name: string }) {
   const socket = usePartySocket({
     host: config.PARTYKIT_URL,
     room: ROOM_ID,
@@ -49,12 +70,11 @@ export function Room() {
 
   return (
     <>
-      <div className="prose grow flex flex-col m-auto">
-        <h1 className="text-center mt-8 uppercase text-stone-800">
-          Page <em className="text-pink-500">Party</em>
-        </h1>
-        {!name && nameForm}
-        {/* {name && (
+      <div className="flex mx-1" style={{ height: "calc(100vh - 3rem)" }}>
+        <Chat socket={socket} name={name} />
+      </div>
+
+      {/* {name && (
           <div className="flex flex-col items-center">
             <button
               className="disabled: mt-4 enabled:bg-pink-700 disabled:bg-slate-400 enabled:hover:bg-pink-500 text-white font-bold py-2 px-4 rounded uppercase"
@@ -66,7 +86,6 @@ export function Room() {
             </button>
           </div>
         )} */}
-      </div>
       {name && <CursorTracking socket={socket} name={name} />}
     </>
   );

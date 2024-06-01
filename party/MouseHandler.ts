@@ -1,7 +1,8 @@
 import type * as Party from "partykit/server";
 import { EventType } from "./types";
+import { Handler } from "./Handler";
 
-export class MouseHandler {
+export class MouseHandler implements Handler {
   constructor(private room: Party.Room) {}
 
   onMessage(message: string, sender: Party.Connection) {
