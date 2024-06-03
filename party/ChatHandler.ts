@@ -1,8 +1,7 @@
 import type * as Party from "partykit/server";
 import { ChatMessage, EventType } from "./types";
-import { Handler } from "./Handler";
 
-export class ChatHandler implements Handler {
+export class ChatHandler {
   #messages: ChatMessage[] = [];
 
   constructor(private room: Party.Room) {}

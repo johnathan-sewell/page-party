@@ -1,5 +1,5 @@
 import usePartySocket from "partysocket/react";
-import { config } from "./config";
+import { config } from "../config";
 import { CursorTracking } from "./CursorTracking/CursorTracking";
 import { Chat } from "./Chat";
 
@@ -21,18 +21,6 @@ export function Room({ name }: { name: string }) {
         <Chat socket={socket} name={name} />
       </div>
 
-      {/* {name && (
-          <div className="flex flex-col items-center">
-            <button
-              className="disabled: mt-4 enabled:bg-pink-700 disabled:bg-slate-400 enabled:hover:bg-pink-500 text-white font-bold py-2 px-4 rounded uppercase"
-              onClick={() => {
-                // setName(inputValue);
-              }}
-            >
-              Play &apos;Who am I?&apos;
-            </button>
-          </div>
-        )} */}
       {name && <CursorTracking socket={socket} name={name} />}
     </>
   );

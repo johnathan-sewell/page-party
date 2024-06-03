@@ -14,7 +14,6 @@ export const Chat = ({
 
   useEffect(() => {
     // scroll to bottom
-    // setTimeout(() => {
     const chat = document.querySelector("#messages");
     chat?.scrollTo(0, chat.scrollHeight);
   }, [messages]);

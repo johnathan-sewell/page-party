@@ -1,6 +1,6 @@
 import PartySocket from "partysocket";
 import { useEffect, useState } from "react";
-import { Cursors, EventType, MouseMoveEvent } from "../../party/types";
+import { MouseMoveEvent, Cursors, EventType } from "../../../party/types";
 import { Cursor } from "./Cursor";
 
 const myId = Math.random().toString(36).substring(2, 10);
