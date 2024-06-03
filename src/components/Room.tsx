@@ -10,9 +10,6 @@ export function Room({ name }: { name: string }) {
     host: config.PARTYKIT_URL,
     room: ROOM_ID,
     id: name,
-    onMessage({ data }) {
-      console.log(data);
-    },
   });
 
   return (
