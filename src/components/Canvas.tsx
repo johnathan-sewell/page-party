@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Cursors, EventType } from "../../party/types";
 
 const randomHexColorCode = () =>
-  "#" + (Math.random() * 0xfffff * 1000000).toString(16).slice(0, 6);
+  "#" + (Math.random() * 0xaaaaaa * 1000000).toString(16).slice(0, 6);
 
 const myColor = randomHexColorCode();
 
