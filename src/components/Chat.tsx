@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SendMessageEvent, EventType, ChatMessage } from "../party/types";
+import { ChatMessage, EventType, SendMessageEvent } from "../../party/types";
 import PartySocket from "partysocket";
 
 export const Chat = ({
@@ -33,7 +33,7 @@ export const Chat = ({
   }, [socket]);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-slate-100">
       <div className="grow overflow-auto" id="messages">
         {messages.map((message, i) => (
           <div className="" key={i}>

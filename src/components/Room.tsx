@@ -2,6 +2,7 @@ import usePartySocket from "partysocket/react";
 import { config } from "../config";
 import { CursorTracking } from "./CursorTracking/CursorTracking";
 import { Chat } from "./Chat";
+import { Canvas } from "./Canvas";
 
 const ROOM_ID = "floof-party";
 
@@ -18,7 +19,12 @@ export function Room({ name }: { name: string }) {
         <Chat socket={socket} name={name} />
       </div>
 
-      {name && <CursorTracking socket={socket} name={name} />}
+      {name && (
+        <>
+          <CursorTracking socket={socket} name={name} />
+          <Canvas name={name} socket={socket} />
+        </>
+      )}
     </>
   );
 }

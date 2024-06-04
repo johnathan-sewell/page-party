@@ -14,7 +14,7 @@ export const CursorTracking = ({
 }) => {
   const [mouseData, setMouseData] = useState<Cursors>();
 
-  const handleMessage = (event: MessageEvent) => {
+  const updateMouseData = (event: MessageEvent) => {
     const data = JSON.parse(event.data) as EventType;
     if (data.type === "mouse") {
       setMouseData(data.payload);
@@ -22,10 +22,11 @@ export const CursorTracking = ({
   };
 
   useEffect(() => {
-    socket.addEventListener("message", handleMessage);
+    socket.addEventListener("message", updateMouseData);
     return () => {
-      socket.removeEventListener("message", handleMessage);
+      socket.removeEventListener("message", updateMouseData);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
   const [dimensions, setDimensions] = useState<{
@@ -35,7 +36,7 @@ export const CursorTracking = ({
 
   // track the mouse
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const sendMousePosition = (e: MouseEvent) => {
       if (!socket) return;
       if (!dimensions.width || !dimensions.height) return;
       const data: MouseMoveEvent = {
@@ -45,15 +46,16 @@ export const CursorTracking = ({
             name,
             x: e.clientX / dimensions.width,
             y: e.clientY / dimensions.height,
+            buttons: e.buttons,
           },
         },
       };
       socket.send(JSON.stringify(data));
     };
-    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mousemove", sendMousePosition);
 
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mousemove", sendMousePosition);
     };
   }, [name, socket, dimensions]);
 

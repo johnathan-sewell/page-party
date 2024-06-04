@@ -1,4 +1,6 @@
-export type Cursors = { [key: string]: { name: string; x: number; y: number } };
+export type Cursors = {
+  [key: string]: { name: string; x: number; y: number; buttons?: number };
+};
 
 export interface ChatMessage {
   name: string;

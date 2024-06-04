@@ -9,7 +9,6 @@ export function Cursor({
   };
   windowDimensions: { width: number; height: number };
 }) {
-  console.log("rendering cursor", cursor, windowDimensions);
   const offset = 10;
   // calculate the position of the cursor
   // for example if the cursor is at 0.5, 0.5
